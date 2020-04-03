@@ -1,5 +1,5 @@
 ﻿using UnityEngine;
-namespace Scripts
+namespace Scripts.Utils
 {
     public abstract class Singleton<T> : MonoBehaviour where T : Singleton<T>
     {

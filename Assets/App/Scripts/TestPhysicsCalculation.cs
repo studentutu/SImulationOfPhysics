@@ -8,6 +8,8 @@ public class TestPhysicsCalculation : MonoBehaviour
 {
     private const int INTERATIONS = 10000;
     private const float EPSILON = 0.0005f;
+    private const float SMALLEST_TIME_STEP = 0.00001f;
+    private const float INITIAL_VALUE_CHECK = 1f;
 
     [SerializeField] private float width = 20f;
     [SerializeField] private float guessHeight = 2f;
@@ -138,9 +140,9 @@ public class TestPhysicsCalculation : MonoBehaviour
         Vector3 previouspos = gameobjectNew.transform.position;
         Vector3 nextPosition = previouspos;
         bool reset = false;
-        float closeT0 = 0.5f;
+        float closeT0 = INITIAL_VALUE_CHECK;
         float closeWithHeight = guessHeight;
-        float smallestStep = 0.0001f;
+        float smallestStep = SMALLEST_TIME_STEP;
 
         lineRendererReal.positionCount = 0;
         List<Vector3> allPoints = new List<Vector3>();
@@ -161,7 +163,6 @@ public class TestPhysicsCalculation : MonoBehaviour
             nextPosition = gameobjectNew.transform.position;
             allPoints.Add(nextPosition);
 
-            Debug.LogWarning(gameobjectNew.transform.position.y + " vel " + gameobjectNew.velocity.ToString("F4"));
             // Check
             if (Mathf.Abs(nextPosition.y - guessHeight) <= EPSILON)
             {
@@ -205,6 +206,8 @@ public class TestPhysicsCalculation : MonoBehaviour
     {
         float timeDelta = Time.fixedDeltaTime;
         float iterations = INTERATIONS;
+        bool isFinished = false;
+
         Vector2 newPos = p;
         Vector2 gravityForce = Vector2.up * G;
         bool LeftBorder = false;
@@ -216,17 +219,18 @@ public class TestPhysicsCalculation : MonoBehaviour
 
         Vector2 inNormal;
         Vector2 previouspos = newPos;
-        bool isFinished = false;
-        Vector2 allForces = v;
-        Vector2 finalForce = allForces;
+        Vector2 finalForce;
 
         bool reset = false;
-        float closeT0 = 0.5f;
+        float closeT0 = INITIAL_VALUE_CHECK;
         float closeWithHeight = h;
-        float smallestStep = 0.001f;
+        float smallestStep = SMALLEST_TIME_STEP;
 
+
+        Vector2 forceAdditive = v;
         lineRendererCalc.positionCount = 0;
         List<Vector3> allPoints = new List<Vector3>();
+        Vector2 newPos2;
         for (int i = 0; i < iterations && !isFinished; i++)
         {
             // Reset
@@ -240,13 +244,15 @@ public class TestPhysicsCalculation : MonoBehaviour
             closeWithHeight = h + closeT0;
 
             // Simulate
-            newPos += (allForces + 0.5f * gravityForce * timeDelta) * timeDelta;
-            allPoints.Add(newPos);
+            forceAdditive += gravityForce * timeDelta; // constant additive force
+            // Position equation
+            finalForce = (forceAdditive + 0.5f * gravityForce * timeDelta) * timeDelta;
+            newPos2 = newPos + finalForce;
 
             // check if we collide with borders
-            LeftBorder = newPos.x <= 0;
-            bottom = newPos.y <= 0;
-            if (LeftBorder || bottom || newPos.x >= w)
+            LeftBorder = newPos2.x <= 0;
+            bottom = newPos2.y <= 0;
+            if (LeftBorder || bottom || newPos2.x >= w)
             {
                 if (bottom)
                 {
@@ -256,11 +262,12 @@ public class TestPhysicsCalculation : MonoBehaviour
                 {
                     inNormal = LeftBorder ? leftNormal : rightNotmal;
                 }
-                allForces = Vector2.Reflect(allForces, inNormal);
+                forceAdditive = Vector2.Reflect(forceAdditive, inNormal);
             }
 
-            // safe if we will go back
-            Debug.LogWarning(newPos.ToString("F4"));
+            newPos += finalForce;
+            allPoints.Add(newPos);
+
             // Check
             if (Mathf.Abs(newPos.y - h) <= EPSILON)
             {

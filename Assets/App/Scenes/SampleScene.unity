@@ -146,7 +146,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 59111561}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 6.89, y: 1.73, z: 0}
+  m_LocalPosition: {x: 6.89, y: 4.12, z: 0}
   m_LocalScale: {x: 0.1, y: 0.1, z: 0.1}
   m_Children:
   - {fileID: 1813543389}
@@ -649,9 +649,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   width: 7.6
   guessHeight: 0.5
-  velocity: {x: 1, y: -1}
-  gravity: -9.81
-  point: {x: 6.89, y: 1.73}
+  velocity: {x: 3, y: -1}
+  gravity: -3
+  point: {x: 6.89, y: 4.12}
   objectPoint: {fileID: 59111562}
   leftBorder: {fileID: 1754054590}
   RightBorder: {fileID: 149219302}
@@ -878,36 +878,6 @@ PrefabInstance:
         type: 3}
       propertyPath: m_RootOrder
       value: 4
-      objectReference: {fileID: 0}
-    - target: {fileID: 756688222325226646, guid: e4550aa443fdb894aa0ef011c57c19f4,
-        type: 3}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 756688222325226646, guid: e4550aa443fdb894aa0ef011c57c19f4,
-        type: 3}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 756688222325226646, guid: e4550aa443fdb894aa0ef011c57c19f4,
-        type: 3}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 756688222325226646, guid: e4550aa443fdb894aa0ef011c57c19f4,
-        type: 3}
-      propertyPath: m_LocalScale.x
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 756688222325226646, guid: e4550aa443fdb894aa0ef011c57c19f4,
-        type: 3}
-      propertyPath: m_LocalScale.y
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 756688222325226646, guid: e4550aa443fdb894aa0ef011c57c19f4,
-        type: 3}
-      propertyPath: m_LocalScale.z
-      value: 1
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: e4550aa443fdb894aa0ef011c57c19f4, type: 3}

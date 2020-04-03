@@ -9,7 +9,7 @@ public class TestPhysicsCalculation : MonoBehaviour
     private const int INTERATIONS = 10000;
     private const float EPSILON = 0.0005f;
     private const float SMALLEST_TIME_STEP = 0.00001f;
-    private const float INITIAL_VALUE_CHECK = 1f;
+    private const float INITIAL_DIFFERENCE_WITH_HEIGHT = 1f;
 
     [SerializeField] private float width = 20f;
     [SerializeField] private float guessHeight = 2f;
@@ -18,27 +18,24 @@ public class TestPhysicsCalculation : MonoBehaviour
     [SerializeField] private Vector2 point = default;
     [SerializeField] private Transform objectPoint = default;
     [SerializeField] private Transform leftBorder = default;
-    [SerializeField] private Transform RightBorder = default;
-    [SerializeField] private Transform Base = default;
-    [SerializeField] private Transform GuessHeightObject = default;
+    [SerializeField] private Transform rightBorder = default;
+    [SerializeField] private Transform @base = default;
+    [SerializeField] private Transform guessHeightObject = default;
 
-    [Space]
-    [SerializeField] private Rigidbody2D prefab = null;
+    [Space, Header("Tests")]
+    [SerializeField] private Rigidbody2D prefab = default;
     [SerializeField] private Transform controlMeasure = default;
-    [SerializeField] private TMPro.TMP_Text text = null;
+    [SerializeField] private TMP_Text text = default;
+    [SerializeField] private LineRenderer lineRendererReal = default;
+    [SerializeField] private LineRenderer lineRendererCalc = default;
 
     [SerializeField] private bool test1 = false;
     [SerializeField] private bool testAngle = false;
     [SerializeField] private bool testReal = false;
 
-    [SerializeField] private LineRenderer lineRendererReal = default;
-    [SerializeField] private LineRenderer lineRendererCalc = default;
-
-
     private Vector3 AsUp = Vector3.up;
     private Vector3 AsRight = Vector3.right;
     private Vector3 AsForward = Vector3.forward;
-
 
     private Vector2 Point
     {
@@ -47,12 +44,12 @@ public class TestPhysicsCalculation : MonoBehaviour
             return new Vector2(objectPoint.position.x, objectPoint.position.y);
         }
     }
+
     private void Awake()
     {
         ThreadTools.Initialize();
         lineRendererReal.useWorldSpace = true;
         lineRendererCalc.useWorldSpace = true;
-
     }
 
     private void OnValidate()
@@ -61,16 +58,17 @@ public class TestPhysicsCalculation : MonoBehaviour
         {
             objectPoint.position = new Vector3(point.x, point.y, 0);
         }
-        if (RightBorder != null && leftBorder != null && Base != null && GuessHeightObject != null)
+
+        if (rightBorder != null && leftBorder != null && @base != null && guessHeightObject != null)
         {
+            @base.position = AsRight * width / 2;
+            @base.localScale = new Vector3(width, @base.localScale.y, @base.localScale.z);
+            guessHeightObject.localScale = new Vector3(width, guessHeightObject.localScale.y, guessHeightObject.localScale.z);
+            guessHeightObject.position = @base.position + AsUp * guessHeight;
 
-            Base.position = AsRight * width / 2;
-            Base.localScale = new Vector3(width, Base.localScale.y, Base.localScale.z);
-            GuessHeightObject.localScale = new Vector3(width, GuessHeightObject.localScale.y, GuessHeightObject.localScale.z);
-            GuessHeightObject.position = Base.position + AsUp * guessHeight;
-
-            RightBorder.position = leftBorder.position + AsRight * width;
+            rightBorder.position = leftBorder.position + AsRight * width;
         }
+
         if (test1)
         {
             test1 = false;
@@ -86,7 +84,18 @@ public class TestPhysicsCalculation : MonoBehaviour
         if (testReal)
         {
             testReal = false;
-            ThreadTools.StartCoroutine(delayStart(() => TestRealPos()));
+            ThreadTools.StartCoroutine(delayStart(() => TestCalculateRealPos()));
+        }
+    }
+
+    private void OnDrawGizmos()
+    {
+        if (objectPoint != null)
+        {
+            var angle = getAngle(velocity);
+            var rotateNormal = angle * AsUp;
+            Gizmos.color = Color.green;
+            Gizmos.DrawLine(objectPoint.position, objectPoint.position + rotateNormal * 10f);
         }
     }
 
@@ -109,54 +118,46 @@ public class TestPhysicsCalculation : MonoBehaviour
         action?.Invoke();
     }
 
-    private void OnDrawGizmos()
+    private void TestAngle()
     {
-        if (objectPoint != null)
-        {
-            var angle = getAngle(velocity);
-            var rotaterNormal = angle * AsUp;
-            Gizmos.color = Color.green;
-            // Vector3 normalied =
-            Gizmos.DrawLine(objectPoint.position, objectPoint.position + rotaterNormal * 10f);
-        }
+        Rigidbody2D rb2D = Instantiate(prefab, objectPoint.position, Quaternion.identity);
+        rb2D.AddForce(velocity.normalized * velocity.magnitude, ForceMode2D.Impulse);
+        rb2D.gameObject.SafeDestroy(3f);
     }
 
-    public void TestAngle()
+    private void TestCalculateRealPos()
     {
         Rigidbody2D gameobjectNew = Instantiate(prefab, objectPoint.position, Quaternion.identity);
         gameobjectNew.AddForce(velocity.normalized * velocity.magnitude, ForceMode2D.Impulse);
-        gameobjectNew.gameObject.SafeDestroy(3f);
-    }
 
-    public void TestRealPos()
-    {
-        Rigidbody2D gameobjectNew = Instantiate(prefab, objectPoint.position, Quaternion.identity);
-        gameobjectNew.AddForce(velocity.normalized * velocity.magnitude, ForceMode2D.Impulse);
         float iterations = INTERATIONS;
         bool isFinished = false;
         float timeDelta = Time.fixedDeltaTime;
-        bool previous = Physics2D.autoSimulation;
-        Physics2D.autoSimulation = false;
+        float maxDifferenceWithHeight = INITIAL_DIFFERENCE_WITH_HEIGHT;
+        float smallestStep = SMALLEST_TIME_STEP;
+
         Vector3 previouspos = gameobjectNew.transform.position;
         Vector3 nextPosition = previouspos;
         bool reset = false;
-        float closeT0 = INITIAL_VALUE_CHECK;
-        float closeWithHeight = guessHeight;
-        float smallestStep = SMALLEST_TIME_STEP;
+        float closeToHeight;
+
+        bool previousAutoSimulation = Physics2D.autoSimulation;
+        Physics2D.autoSimulation = false;
 
         lineRendererReal.positionCount = 0;
         List<Vector3> allPoints = new List<Vector3>();
+
         for (int i = 0; i < iterations && !isFinished; i++)
         {
             // Reset
             if (reset)
             {
                 reset = false;
-                closeT0 = closeT0 * 0.5f;
+                maxDifferenceWithHeight = maxDifferenceWithHeight * 0.5f;
                 timeDelta *= 0.5f;
                 timeDelta = Mathf.Max(timeDelta, smallestStep);
             }
-            closeWithHeight = guessHeight + closeT0;
+            closeToHeight = guessHeight + maxDifferenceWithHeight;
 
             // Simulate
             Physics2D.Simulate(timeDelta);
@@ -172,8 +173,8 @@ public class TestPhysicsCalculation : MonoBehaviour
             }
 
             // Optimize search. Make Sure to not overkill the range
-            if (!isFinished && (closeWithHeight < nextPosition.y && closeWithHeight > previouspos.y)
-                || (closeWithHeight > nextPosition.y && closeWithHeight < previouspos.y))
+            if (!isFinished && (closeToHeight < nextPosition.y && closeToHeight > previouspos.y)
+                || (closeToHeight > nextPosition.y && closeToHeight < previouspos.y))
             {
                 reset = true;
             }
@@ -181,11 +182,11 @@ public class TestPhysicsCalculation : MonoBehaviour
             // Saving state
             previouspos = gameobjectNew.transform.position;
         }
+
         lineRendererReal.positionCount = allPoints.Count;
         lineRendererReal.SetPositions(allPoints.ToArray());
 
-        Physics2D.autoSimulation = previous;
-        Debug.LogWarning(" if finished " + isFinished);
+        Physics2D.autoSimulation = previousAutoSimulation;
         gameobjectNew.gameObject.SafeDestroy();
     }
 
@@ -208,45 +209,47 @@ public class TestPhysicsCalculation : MonoBehaviour
         float iterations = INTERATIONS;
         bool isFinished = false;
 
-        Vector2 newPos = p;
         Vector2 gravityForce = Vector2.up * G;
+        Vector2 leftNormal = Vector2.right;
+        Vector2 rightNormal = -Vector2.right;
+        Vector2 bottomNormal = Vector2.up;
+        Vector2 inNormal;
         bool LeftBorder = false;
         bool bottom = false;
+        Vector2 gravityAndDeltaTime;
 
-        Vector2 leftNormal = Vector2.right;
-        Vector2 rightNotmal = -Vector2.right;
-        Vector2 bottomNormal = Vector2.up;
-
-        Vector2 inNormal;
-        Vector2 previouspos = newPos;
+        Vector2 newPos = p;
+        Vector2 previousPos = newPos;
+        Vector2 forceAdditive = v;
         Vector2 finalForce;
+        Vector2 newPos2;
 
         bool reset = false;
-        float closeT0 = INITIAL_VALUE_CHECK;
-        float closeWithHeight = h;
+        float maxDifferenceWithHeight = INITIAL_DIFFERENCE_WITH_HEIGHT;
         float smallestStep = SMALLEST_TIME_STEP;
+        float closeToHeight;
 
-
-        Vector2 forceAdditive = v;
         lineRendererCalc.positionCount = 0;
         List<Vector3> allPoints = new List<Vector3>();
-        Vector2 newPos2;
+
         for (int i = 0; i < iterations && !isFinished; i++)
         {
             // Reset
             if (reset)
             {
                 reset = false;
-                closeT0 = closeT0 * 0.5f;
+                maxDifferenceWithHeight = maxDifferenceWithHeight * 0.5f;
                 timeDelta *= 0.5f;
                 timeDelta = Mathf.Max(timeDelta, smallestStep);
             }
-            closeWithHeight = h + closeT0;
+            closeToHeight = h + maxDifferenceWithHeight;
 
             // Simulate
-            forceAdditive += gravityForce * timeDelta; // constant additive force
+            gravityAndDeltaTime = gravityForce * timeDelta;
+            // constant additive force
+            forceAdditive += gravityAndDeltaTime;
             // Position equation
-            finalForce = (forceAdditive + 0.5f * gravityForce * timeDelta) * timeDelta;
+            finalForce = (forceAdditive + 0.5f * gravityAndDeltaTime) * timeDelta;
             newPos2 = newPos + finalForce;
 
             // check if we collide with borders
@@ -260,7 +263,7 @@ public class TestPhysicsCalculation : MonoBehaviour
                 }
                 else
                 {
-                    inNormal = LeftBorder ? leftNormal : rightNotmal;
+                    inNormal = LeftBorder ? leftNormal : rightNormal;
                 }
                 forceAdditive = Vector2.Reflect(forceAdditive, inNormal);
             }
@@ -276,17 +279,19 @@ public class TestPhysicsCalculation : MonoBehaviour
             }
 
             // Optimize search. Make Sure to not overkill the range
-            if (!isFinished && ((closeWithHeight < newPos.y && closeWithHeight > previouspos.y) ||
-                                (closeWithHeight > newPos.y && closeWithHeight < previouspos.y)))
+            if (!isFinished && ((closeToHeight < newPos.y && closeToHeight > previousPos.y) ||
+                                (closeToHeight > newPos.y && closeToHeight < previousPos.y)))
             {
                 reset = true;
             }
 
             // Saving state
-            previouspos = newPos;
+            previousPos = newPos;
         }
+
         lineRendererCalc.positionCount = allPoints.Count;
         lineRendererCalc.SetPositions(allPoints.ToArray());
+
         return isFinished;
     }
 }

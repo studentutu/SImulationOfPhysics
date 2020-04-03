@@ -654,17 +654,17 @@ MonoBehaviour:
   point: {x: 6.89, y: 4.12}
   objectPoint: {fileID: 59111562}
   leftBorder: {fileID: 1754054590}
-  RightBorder: {fileID: 149219302}
-  Base: {fileID: 1723663621}
-  GuessHeightObject: {fileID: 1845721146}
+  rightBorder: {fileID: 149219302}
+  base: {fileID: 1723663621}
+  guessHeightObject: {fileID: 1845721146}
   prefab: {fileID: 756688222325226633, guid: e4550aa443fdb894aa0ef011c57c19f4, type: 3}
   controlMeasure: {fileID: 885163713}
   text: {fileID: 226337332}
+  lineRendererReal: {fileID: 1723663625}
+  lineRendererCalc: {fileID: 1845721147}
   test1: 0
   testAngle: 0
   testReal: 0
-  lineRendererReal: {fileID: 1723663625}
-  lineRendererCalc: {fileID: 1845721147}
 --- !u!1 &885163712
 GameObject:
   m_ObjectHideFlags: 0
@@ -938,7 +938,7 @@ GameObject:
   - component: {fileID: 1723663622}
   - component: {fileID: 1723663625}
   m_Layer: 0
-  m_Name: Bottom
+  m_Name: Base
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

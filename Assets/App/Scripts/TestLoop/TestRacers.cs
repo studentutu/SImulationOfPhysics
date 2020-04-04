@@ -6,8 +6,12 @@ namespace Scripts.TestLoop
 {
     public class TestRacers : MonoBehaviour
     {
+        /// <summary>
+        ///  Ideally struct
+        /// </summary>
         private class Racer
         {
+            // Index of Racer
             private bool isAlive = true; // can be property
             private bool isCollidable = false; // can be property
 
@@ -45,7 +49,10 @@ namespace Scripts.TestLoop
         }
 
         private const int NUMBER_OF_RACERS = 1000;
-        private Dictionary<Racer, bool> racersAndState = new Dictionary<Racer, bool>(NUMBER_OF_RACERS);
+
+        // Instead of saving whole racer - we can use nly his id.
+        // ideally - no dictionary required 
+        private readonly Dictionary<Racer, bool> racersAndState = new Dictionary<Racer, bool>(NUMBER_OF_RACERS);
 
         private void UpdateRacers(float deltaTimeS, List<Racer> racers)
         {
@@ -91,33 +98,39 @@ namespace Scripts.TestLoop
             // Also there are other advanced techniques to speed up the calculation such as Triangulation and such.
 
             // Collides
+            // instead of whole Racer - we can use index of Racer
             Racer racer2 = null;
+
             for (int racerIndex1 = 0; racerIndex1 < Count; racerIndex1++)
             {
-                for (int racerIndex2 = racerIndex1; racerIndex2 < Count; racerIndex2++)
+                racer1 = racers[racerIndex1];
+                // additionally first check if the racer1 is dead - will also help a little but may change the behavior
+                // other racers may not explode even when they appear to collide with it
+                // if (racersAndState[racer1]) //need to test if it is the same behavior
                 {
-                    racer1 = racers[racerIndex1];
-                    racer2 = racers[racerIndex2];
-                    // additionally first check if the racer1 is dead - will also help a little but may change the behaviour
-                    // other racers may not explode even when they appear to collide with it
-                    // racersNeedingRemoved[racer1] === true
-
-                    // main issue here - CollidesWith() - the less it is called the better
-                    if (racer1.IsCollidable() && racer2.IsCollidable() && racer1.CollidesWith(racer2))
+                    for (int racerIndex2 = racerIndex1; racerIndex2 < Count; racerIndex2++)
                     {
-                        OnRacerExplodes(racer1);
-                        //   OnRacerExplodes(racer2); // need to test
-                        racersAndState[racer1] = false;
-                        racersAndState[racer2] = false;
+                        racer2 = racers[racerIndex2];
+
+                        // main issue here - CollidesWith() - the less it is called the better
+                        if (racer1.IsCollidable() && racer2.IsCollidable() && racer1.CollidesWith(racer2))
+                        {
+                            OnRacerExplodes(racer1);
+                            // OnRacerExplodes(racer2); // need to test if it is the same behavior
+                            racersAndState[racer1] = false;
+                            racersAndState[racer2] = false;
+                        }
                     }
                 }
             }
 
             // Gets the racers that are still alive
             // Get rid of all the exploded racers
+            // GC can spike( 
             racers.Clear();
 
             // Builds the list of remaining racers
+            // foreach is not ideal, but will be sufficient 
             foreach (var item in racersAndState.Keys)
             {
                 if (racersAndState[item])
@@ -129,7 +142,13 @@ namespace Scripts.TestLoop
             }
 
             // clear up the memory
+            // Garbage(  Ideally if this would not needed if it was implemented on a stack 
             racersAndState.Clear();
+
+            // Another solution - 
+            // With the help of Octree - Each Racer internally will keep track of the cars nearby
+            // this way there will be no need in the unified dictionary of any sort and we would not 
+            // need to worry about the garbage genereted. Just simple method - check if collides.
         }
 
         /// <summary>

@@ -89,7 +89,8 @@ namespace Scripts.TestLoop
             // To further improve it  - we can use a sort O(n*log(n)) on the racing line - make a line from the racer ( position +- with/height)
             //  (0 is start + ( position +- with/height) - 100 finishing line) ( make it 1 dimensional)
             // traverse sorted array of rectangles and check with the min distance if any of them collides with the  - O(n) 
-            // this way we can achieve O(n*log(n)) .
+            // this way we can achieve O(n*log(n)) . 
+            // See https://www.geeksforgeeks.org/top-algorithms-and-data-structures-for-competitive-programming/#algo1
 
             // Solution with Octree :  
             // Requires contant update on Octree
@@ -107,6 +108,7 @@ namespace Scripts.TestLoop
                 // additionally first check if the racer1 is dead - will also help a little but may change the behavior
                 // other racers may not explode even when they appear to collide with it
                 // if (racersAndState[racer1]) //need to test if it is the same behavior
+                // also check if racer1.IsCollidable() - it can be not collidable when Destroyed
                 {
                     for (int racerIndex2 = racerIndex1; racerIndex2 < Count; racerIndex2++)
                     {

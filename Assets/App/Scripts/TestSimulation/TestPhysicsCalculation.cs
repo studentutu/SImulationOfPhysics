@@ -3,6 +3,9 @@ using System.Collections.Generic;
 using UnityEngine;
 using TMPro;
 using Scripts.Async;
+using Unity.IL2CPP.CompilerServices;
+using System.Runtime.CompilerServices;
+
 namespace Scripts.TestSimulation
 {
 
@@ -127,6 +130,10 @@ namespace Scripts.TestSimulation
             rb2D.gameObject.SafeDestroy(3f);
         }
 
+        [Il2CppSetOption(Option.NullChecks, false)]
+        [Il2CppSetOption(Option.ArrayBoundsChecks, false)]
+        [Il2CppSetOption(Option.DivideByZeroChecks, false)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void TestCalculateRealPos()
         {
             Rigidbody2D gameobjectNew = Instantiate(prefab, objectPoint.position, Quaternion.identity);
@@ -197,6 +204,10 @@ namespace Scripts.TestSimulation
         /// </summary>
         /// <param name="p2"> Velocity </param>
         /// <returns></returns>
+        [Il2CppSetOption(Option.NullChecks, false)]
+        [Il2CppSetOption(Option.ArrayBoundsChecks, false)]
+        [Il2CppSetOption(Option.DivideByZeroChecks, false)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private Quaternion getAngle(Vector2 p2)
         {
             // var angle = Mathf.Atan2(p2.y - p1.y, p2.x - p1.x) * 180 / Mathf.PI;
@@ -204,7 +215,11 @@ namespace Scripts.TestSimulation
             return Quaternion.AngleAxis(angle, AsForward);
         }
 
-
+        [Il2CppSetOption(Option.NullChecks, false)]
+        [Il2CppSetOption(Option.ArrayBoundsChecks, false)]
+        [Il2CppSetOption(Option.DivideByZeroChecks, false)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        // Still is not correct calculation!
         public bool TryCalculateXPositionAtHeight(float h, Vector2 p, Vector2 v, float G, float w, ref float xPosition)
         {
             float timeDelta = Time.fixedDeltaTime;
@@ -218,18 +233,18 @@ namespace Scripts.TestSimulation
             Vector2 inNormal;
             bool LeftBorder = false;
             bool bottom = false;
-            Vector2 gravityAndDeltaTime;
 
             Vector2 newPos = p;
             Vector2 previousPos = newPos;
             Vector2 forceAdditive = v;
-            Vector2 finalForce;
+            Vector2 finalVelocity;
             Vector2 newPos2;
 
             bool reset = false;
             float maxDifferenceWithHeight = INITIAL_DIFFERENCE_WITH_HEIGHT;
             float smallestStep = SMALLEST_TIME_STEP;
             float closeToHeight;
+            Vector2 gravityVelocity = Vector2.zero;
 
             lineRendererCalc.positionCount = 0;
             List<Vector3> allPoints = new List<Vector3>();
@@ -247,12 +262,12 @@ namespace Scripts.TestSimulation
                 closeToHeight = h + maxDifferenceWithHeight;
 
                 // Simulate
-                gravityAndDeltaTime = gravityForce * timeDelta;
                 // constant additive force
-                forceAdditive += gravityAndDeltaTime;
+                gravityVelocity = gravityForce * timeDelta;
+                forceAdditive += gravityVelocity;
                 // Position equation
-                finalForce = (forceAdditive + 0.5f * gravityAndDeltaTime) * timeDelta;
-                newPos2 = newPos + finalForce;
+                finalVelocity = forceAdditive * timeDelta;
+                newPos2 = newPos + finalVelocity;
 
                 // check if we collide with borders
                 LeftBorder = newPos2.x <= 0;
@@ -267,10 +282,13 @@ namespace Scripts.TestSimulation
                     {
                         inNormal = LeftBorder ? leftNormal : rightNormal;
                     }
+
                     forceAdditive = Vector2.Reflect(forceAdditive, inNormal);
+                    // Position equation
                 }
 
-                newPos += finalForce;
+                finalVelocity = (forceAdditive + gravityVelocity) * timeDelta;
+                newPos += finalVelocity;
                 allPoints.Add(newPos);
 
                 // Check

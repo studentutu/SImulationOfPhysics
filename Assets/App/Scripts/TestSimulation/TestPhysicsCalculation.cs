@@ -5,6 +5,7 @@ using TMPro;
 using Scripts.Async;
 using Unity.IL2CPP.CompilerServices;
 using System.Runtime.CompilerServices;
+using UnityEngine.SceneManagement;
 
 namespace Scripts.TestSimulation
 {
@@ -213,6 +214,18 @@ namespace Scripts.TestSimulation
             // var angle = Mathf.Atan2(p2.y - p1.y, p2.x - p1.x) * 180 / Mathf.PI;
             var angle = Math3d.AngleBetweenVector2(AsUp, p2);
             return Quaternion.AngleAxis(angle, AsForward);
+        }
+
+        [Il2CppSetOption(Option.NullChecks, false)]
+        [Il2CppSetOption(Option.ArrayBoundsChecks, false)]
+        [Il2CppSetOption(Option.DivideByZeroChecks, false)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void CalculateViaPhysicsScene()
+        {
+
+            Scene _scene = SceneManager.CreateScene("Procedural Scene");
+            // _scene. // add object in here and start the TestCalculateRealPos
+            PhysicsScene physicsScene = _scene.GetPhysicsScene();
         }
 
         [Il2CppSetOption(Option.NullChecks, false)]

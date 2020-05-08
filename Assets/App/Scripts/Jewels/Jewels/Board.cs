@@ -193,6 +193,8 @@ public class Board
         }
     }
 
+    // TODO: finish check raw and colums
+    // swap, set, get and check
     private bool CheckIfInRawOrVertical(Move checkMove, ref int oldPoint)
     {
         Vector2Int Nextposition = default;

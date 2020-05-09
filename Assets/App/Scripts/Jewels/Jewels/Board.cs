@@ -15,19 +15,19 @@ public class Board
         Violet
     };
 
-    private static Dictionary<MoveDirection, System.Func<Move, (int, int)>> actualDictionary;
-    private static Dictionary<MoveDirection, System.Func<Move, (int, int)>> ActualDictionary
+    private static Dictionary<MoveDirection, System.Func<Move, bool, (int, int)>> actualDictionary;
+    private static Dictionary<MoveDirection, System.Func<Move, bool, (int, int)>> ActualDictionary
     {
         get
         {
             if (actualDictionary == null)
             {
-                actualDictionary = new Dictionary<MoveDirection, System.Func<Move, (int, int)>>()
+                actualDictionary = new Dictionary<MoveDirection, System.Func<Move, bool, (int, int)>>()
                 {
-                    {MoveDirection.Down, (input) => { return (input.x, input.y -1);}},
-                    {MoveDirection.Up, (input) => { return (input.x, input.y +1);}},
-                    {MoveDirection.Left, (input) => { return (input.x -1, input.y);}},
-                    {MoveDirection.Right, (input) => { return (input.x+1, input.y);}},
+                    {MoveDirection.Down, (input, reverse) => { return (input.x, input.y + (reverse?1: -1));}},
+                    {MoveDirection.Up, (input,reverse) => { return (input.x, input.y + (reverse? -1: 1));}},
+                    {MoveDirection.Left, (input,reverse) => { return (input.x + (reverse?1: -1), input.y);}},
+                    {MoveDirection.Right, (input,reverse) => { return (input.x + (reverse? -1: 1), input.y);}},
                 };
             }
             return actualDictionary;
@@ -63,7 +63,6 @@ public class Board
     private int width;
     private int height;
     private JewelKind[][] actualBoard;
-    private List<Move> recordedMoves = new List<Move>();
     public Board(JewelKind[][] newBoard)
     {
         actualBoard = newBoard;
@@ -93,13 +92,7 @@ public class Board
     // recursion
     public Move CalculateBestMoveForBoard()
     {
-        recordedMoves.Clear();
-        var result = GetBestMove();
-        return result;
-    }
-    private void ResetMoves()
-    {
-
+        return GetBestMove();
     }
 
     // [Il2CppSetOption(Option.NullChecks, false)]
@@ -153,49 +146,48 @@ public class Board
 
     private (int, Move) RecursiveCalls(ref int actualPoints, Move fromMove)
     {
-        if (CheckIfInRawOrVertical(fromMove, ref actualPoints)) // will add to the ref value
+        if (CheckIfInRawOrVertical(fromMove, ref actualPoints)) // will add to the ref value, will add new move if true
         {
-            recordedMoves.Add(fromMove);
             Vector2Int Nextposition = default;
             int max = actualPoints;
             int nextValue = actualPoints;
             Move result = default;
-            if (GetPosition(fromMove, out Nextposition))
+
+            // Check
+            nextValue = actualPoints;
+            var check = RecursiveCalls(ref nextValue, new Move(Nextposition.x, Nextposition.y, MoveDirection.Down));
+            if (max < check.Item1)
             {
-                // Check
-                nextValue = actualPoints;
-                var check = RecursiveCalls(ref nextValue, new Move(Nextposition.x, Nextposition.y, MoveDirection.Down));
-                if (max < check.Item1)
-                {
-                    result = check.Item2;
-                    max = check.Item1;
-                }
-                // Check
-                nextValue = actualPoints;
-                check = RecursiveCalls(ref nextValue, new Move(Nextposition.x, Nextposition.y, MoveDirection.Left));
-                if (max < check.Item1)
-                {
-                    result = check.Item2;
-                    max = check.Item1;
-                }
-                // Check
-                nextValue = actualPoints;
-                check = RecursiveCalls(ref nextValue, new Move(Nextposition.x, Nextposition.y, MoveDirection.Right));
-                if (max < check.Item1)
-                {
-                    result = check.Item2;
-                    max = check.Item1;
-                }
-                // Check
-                nextValue = actualPoints;
-                check = RecursiveCalls(ref nextValue, new Move(Nextposition.x, Nextposition.y, MoveDirection.Up));
-                if (max < check.Item1)
-                {
-                    result = check.Item2;
-                    max = check.Item1;
-                }
+                result = check.Item2;
+                max = check.Item1;
             }
+            // Check
+            nextValue = actualPoints;
+            check = RecursiveCalls(ref nextValue, new Move(Nextposition.x, Nextposition.y, MoveDirection.Left));
+            if (max < check.Item1)
+            {
+                result = check.Item2;
+                max = check.Item1;
+            }
+            // Check
+            nextValue = actualPoints;
+            check = RecursiveCalls(ref nextValue, new Move(Nextposition.x, Nextposition.y, MoveDirection.Right));
+            if (max < check.Item1)
+            {
+                result = check.Item2;
+                max = check.Item1;
+            }
+            // Check
+            nextValue = actualPoints;
+            check = RecursiveCalls(ref nextValue, new Move(Nextposition.x, Nextposition.y, MoveDirection.Up));
+            if (max < check.Item1)
+            {
+                result = check.Item2;
+                max = check.Item1;
+            }
+
             // undo move
+            RemoveMove(fromMove);
             return (max, result);
         }
         else
@@ -204,12 +196,10 @@ public class Board
         }
     }
 
-    // TODO: finish check raw and columns
-    // swap, set, get and check
     private bool CheckIfInRawOrVertical(Move checkMove, ref int oldPoint)
     {
         Vector2Int Nextposition = default;
-        if (GetPosition(checkMove, out Nextposition))
+        if (GetPosition(checkMove, false, out Nextposition))
         {
             // Check
             int resultToAdd = 0;
@@ -218,19 +208,41 @@ public class Board
             var nextSwappedJewel = GetJewel(Nextposition.x, Nextposition.y);
             resultToAdd += AddPoints(Nextposition, previousJewel);
             resultToAdd += AddPoints(previousPosition, nextSwappedJewel);
-
-            if (resultToAdd == 0)
-            {
-                return false;
-            }
             oldPoint += resultToAdd;
+            AddMove(checkMove);
+            return true;
+        }
+        return false;
+    }
+
+    private void AddMove(Move moveToAdd)
+    {
+        Vector2Int Nextposition = default;
+        if (GetPosition(moveToAdd, false, out Nextposition))
+        {
+            var previousPosition = new Vector2Int(moveToAdd.x, moveToAdd.y);
+            var previousJewel = GetJewel(moveToAdd.x, moveToAdd.y);
+            var nextSwappedJewel = GetJewel(Nextposition.x, Nextposition.y);
             // swap
             var any = nextSwappedJewel;
             actualBoard[Nextposition.y][Nextposition.x] = previousJewel;
             actualBoard[previousPosition.y][previousPosition.x] = any;
-            return true;
         }
-        return false;
+    }
+
+    private void RemoveMove(Move moveToUndo)
+    {
+        Vector2Int Nextposition = default;
+        if (GetPosition(moveToUndo, true, out Nextposition))
+        {
+            var previousPosition = new Vector2Int(moveToUndo.x, moveToUndo.y);
+            var previousJewel = GetJewel(moveToUndo.x, moveToUndo.y);
+            var nextSwappedJewel = GetJewel(Nextposition.x, Nextposition.y);
+            // swap
+            var any = nextSwappedJewel;
+            actualBoard[Nextposition.y][Nextposition.x] = previousJewel;
+            actualBoard[previousPosition.y][previousPosition.x] = any;
+        }
     }
 
     private int AddPoints(Vector2Int positionFromCheck, JewelKind toCheck)
@@ -299,9 +311,9 @@ public class Board
         return resultTotal;
     }
 
-    private bool GetPosition(Move checkMove, out Vector2Int position)
+    private bool GetPosition(Move checkMove, bool reverse, out Vector2Int position)
     {
-        var tuple = ActualDictionary[checkMove.direction](checkMove);
+        var tuple = ActualDictionary[checkMove.direction](checkMove, reverse);
         position = new Vector2Int(tuple.Item1, tuple.Item2);
         if (position.x <= 0 || position.x >= width)
         {

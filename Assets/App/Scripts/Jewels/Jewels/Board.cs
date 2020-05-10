@@ -144,6 +144,7 @@ public class Board
         return result;
     }
 
+    // TO DO: Rewrite to ParallelFor and Tasks
     private (int, Move) RecursiveCalls(ref int actualPoints, Move fromMove)
     {
         if (CheckIfInRawOrVertical(fromMove, ref actualPoints)) // will add to the ref value, will add new move if true
@@ -152,8 +153,10 @@ public class Board
             int max = actualPoints;
             int nextValue = actualPoints;
             Move result = default;
+            // Add Move
+            AddMove(fromMove);
 
-            // Check
+            // Divide and check
             nextValue = actualPoints;
             var check = RecursiveCalls(ref nextValue, new Move(Nextposition.x, Nextposition.y, MoveDirection.Down));
             if (max < check.Item1)
@@ -161,7 +164,7 @@ public class Board
                 result = check.Item2;
                 max = check.Item1;
             }
-            // Check
+            // Divide and check
             nextValue = actualPoints;
             check = RecursiveCalls(ref nextValue, new Move(Nextposition.x, Nextposition.y, MoveDirection.Left));
             if (max < check.Item1)
@@ -169,7 +172,7 @@ public class Board
                 result = check.Item2;
                 max = check.Item1;
             }
-            // Check
+            // Divide and check
             nextValue = actualPoints;
             check = RecursiveCalls(ref nextValue, new Move(Nextposition.x, Nextposition.y, MoveDirection.Right));
             if (max < check.Item1)
@@ -177,7 +180,7 @@ public class Board
                 result = check.Item2;
                 max = check.Item1;
             }
-            // Check
+            // Divide and check
             nextValue = actualPoints;
             check = RecursiveCalls(ref nextValue, new Move(Nextposition.x, Nextposition.y, MoveDirection.Up));
             if (max < check.Item1)
@@ -209,7 +212,6 @@ public class Board
             resultToAdd += AddPoints(Nextposition, previousJewel);
             resultToAdd += AddPoints(previousPosition, nextSwappedJewel);
             oldPoint += resultToAdd;
-            AddMove(checkMove);
             return true;
         }
         return false;
